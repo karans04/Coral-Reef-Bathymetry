@@ -58,7 +58,6 @@ CMR_FILE_URL = ('{0}/search/granules.json?provider=NSIDC_ECS'
 
 
 def get_username():
-    username = 'karans04'
 
     # For Python 2/3 compatibility:
     try:
@@ -75,7 +74,6 @@ def get_username():
 
 
 def get_password():
-    password = 'Borsalab2019'
     while not password:
         try:
             password = getpass('password: ')
@@ -84,19 +82,19 @@ def get_password():
     return password
 
 
-def get_credentials(url):
+def get_credentials(url,username, password):
     """Get user credentials from .netrc or prompt for input."""
     credentials = None
-    errprefix = ''
-    try:
-        info = netrc.netrc()
-        username, account, password = info.authenticators(urlparse(URS_URL).hostname)
-        errprefix = 'netrc error: '
-    except Exception as e:
-        if (not ('No such file' in str(e))):
-            print('netrc error: {0}'.format(str(e)))
-        username = None
-        password = None
+    # errprefix = ''
+    # try:
+    #     info = netrc.netrc()
+    #     username, account, password = info.authenticators(urlparse(URS_URL).hostname)
+    #     errprefix = 'netrc error: '
+    # except Exception as e:
+    #     if (not ('No such file' in str(e))):
+    #         print('netrc error: {0}'.format(str(e)))
+    #     username = None
+    #     password = None
 
     while not credentials:
         if not username:
@@ -153,7 +151,7 @@ def build_cmr_query_url(short_name, version, time_start, time_end,
     return CMR_FILE_URL + params
 
 
-def cmr_download(urls,download_path = 'data'):
+def cmr_download(urls,username, password,download_path = 'data'):
     """Download files from list of urls."""
     if not urls:
         return
@@ -164,7 +162,7 @@ def cmr_download(urls,download_path = 'data'):
 
     for index, url in enumerate(urls, start=1):
         if not credentials and urlparse(url).scheme == 'https':
-            credentials = get_credentials(url)
+            credentials = get_credentials(url,username, password)
 
         filename = url.split('/')[-1]
         print('{0}/{1}: {2}'.format(str(index).zfill(len(str(url_count))),
@@ -280,7 +278,7 @@ def cmr_search(short_name, version, time_start, time_end,
         quit()
 
 
-def main(data_dir, reef_name):
+def main(data_dir, reef_name, username, password):
     global short_name, version, time_start, time_end, bounding_box, \
         polygon, filename_filter, url_list
 
@@ -323,7 +321,7 @@ def main(data_dir, reef_name):
                               bounding_box=bounding_box,
                               polygon=polygon, filename_filter=filename_filter)
 
-        cmr_download(url_list,download_path)
+        cmr_download(url_list,username,password,download_path)
 
 
 if __name__ == '__main__':

@@ -2,6 +2,7 @@ import src.ATL03_API as is2
 import src.Depth_profile as dp
 import src.Tide_API as ta
 import src.Pixel_transformation as pt
+import src.Sentinel_API as sa
 
 import json
 
@@ -11,12 +12,25 @@ def run_pipeline():
 
     reef_name = params['reef_name']
     data_dir = params['data_dir']
+    start_date = params['sentinel_start_date']
+    end_date = params['sentinel_end_date']
+    num_imgs = params['num_sentinel_imgs']
+    redownload_is2 = params['redownload_is2']
+    download_sentinel = params['download_sentinel']
+    earthdata_login = params['earthdata_login']
+    earthdata_password = params['earthdata_password']
+    sentinel_username = params['sentinel_username']
+    sentinel_password = params['sentinel_password']
 
     params_f.close()
-
-    # is2.main(data_dir, reef_name)
-    # dp.get_depths(data_dir, reef_name)
+    if redownload_is2:
+        is2.main(data_dir, reef_name,earthdata_login,earthdata_password)
+        dp.get_depths(data_dir, reef_name)
+    if download_sentinel:
+        sa.get_sentinel_images(data_dir, reef_name, start_date, end_date, num_imgs,sentinel_username, sentinel_password)
     pt.all_safe_files(data_dir,reef_name)
+
+
 
 if __name__ == '__main__':
     run_pipeline()

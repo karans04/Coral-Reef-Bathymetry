@@ -1,4 +1,13 @@
 {
-  "reef_name" : "Ono-i-Lau",
-  "data_dir" : "data"
+  "reef_name" : "Nasau",
+  "data_dir" : "data",
+  "redownload_is2": 0,
+  "earthdata_login": "",
+  "earthdata_password": "",
+  "sentinel_username": "",
+  "sentinel_password": "",
+  "download_sentinel":1,
+  "sentinel_start_date": "20200101",
+  "sentinel_end_date": "20200331",
+  "num_sentinel_imgs": 5
 }

@@ -251,6 +251,8 @@ def get_regressor(base_fp,meta):
     #get the different band values and height for all x and y coordinates
     out = x.copy()
     out['diff'] = y
+    out['b2'] = reef['b2']
+    out['b3'] = reef['b3']
     out['x'] = reef['x']
     out['y'] = reef['y']
 
@@ -365,7 +367,9 @@ def all_safe_files(data_dir,reef_name):
     if not os.path.exists(csv_fp):
         os.mkdir(csv_fp)
 
-
+    training_data_fp = os.path.join(reef_path,'Training_data')
+    if not os.path.exists(training_data_fp):
+        os.mkdir(training_data_fp)
 
     safe_files = os.path.join(reef_path, 'SAFE_files')
     coords = depth.get_coords(reef_path)
@@ -391,8 +395,9 @@ def all_safe_files(data_dir,reef_name):
             if (sample_median < median_threshold and sample_median > -median_threshold) and \
             sample_variance < variance_threshold:
                 datum[sf] = (r,m,d)
-                preds = (predict_reef(r, m))
-                plot_reefs(preds,d,m,r)
+                d.to_csv(training_data_fp + '/' + meta['reef_name']+'_out_'+ meta['dt'].strftime("%Y%m%d%H%M%S") + '.csv')
+                # preds = (predict_reef(r, m))
+                # plot_reefs(preds,d,m,r)
 
     plot_median_variance_graph(medians, variances, median_threshold, variance_threshold,meta['img_path'])
     corr_plot(datum,reef_name,meta['img_path'])
