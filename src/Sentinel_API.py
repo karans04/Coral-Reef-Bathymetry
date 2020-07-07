@@ -6,6 +6,15 @@ import zipfile
 
 
 def get_sentinel_images(reef, start_date, end_date, num_images,user,password):
+    """
+    Method to download Sentinel-2 images using Sentinel API
+    Params - 1. reef (str) - Coral reef object
+             2. start_date (str) - starting date of sentinel images
+             3. end_date (str) - end date of sentinel images
+             4. num_images (int) - number of sentinel-2 images to download
+             5. user (str) - username on scihub.copernicus.eu
+             6. password (str) - password on scihub.copernicus.eu
+    """
     #login into api
     api = SentinelAPI(user, password, 'https://scihub.copernicus.eu/dhus')
 
