@@ -3,6 +3,7 @@ import src.Depth_profile as dp
 import src.Tide_API as ta
 import src.Pixel_transformation as pt
 import src.Sentinel_API as sa
+import src.Coral_Reef as coral_reef
 
 import json
 
@@ -21,14 +22,15 @@ def run_pipeline():
     earthdata_password = params['earthdata_password']
     sentinel_username = params['sentinel_username']
     sentinel_password = params['sentinel_password']
-
     params_f.close()
+
+    reef = coral_reef.Coral_Reef(data_dir, reef_name)
     if redownload_is2:
         is2.main(data_dir, reef_name,earthdata_login,earthdata_password)
-        dp.get_depths(data_dir, reef_name)
+        dp.get_depths(reef)
     if download_sentinel:
-        sa.get_sentinel_images(data_dir, reef_name, start_date, end_date, num_imgs,sentinel_username, sentinel_password)
-    pt.all_safe_files(data_dir,reef_name)
+        sa.get_sentinel_images(reef, start_date, end_date, num_imgs,sentinel_username, sentinel_password)
+    pt.all_safe_files(reef)
 
 
 
