@@ -289,15 +289,10 @@ def main(data_dir, reef_name, username, password):
         import geopandas as gpd
         from shapely.geometry import mapping
 
-        df = gpd.read_file(gj_fp)
+        coords = gpd.read_file(gj_fp)['geometry'][0].bounds
+        coords = [str(i) for i in coords]
 
-        g = [i for i in df.geometry]
-        all_coords = str(mapping(g[0])["coordinates"]) # for first feature/row
-        all_coords = all_coords.replace('(','')
-        all_coords = all_coords.replace(')','')
-        all_coords = all_coords.replace(' ','')
-        all_coords = all_coords.strip(',')
-        polygon = all_coords
+        bounding_box = ','.join(coords)
         today = date.today()
         time_end = today.strftime('%Y-%m-%d')
     # global polygon = gj['features'][0]['geometry']['coordinates']
@@ -311,8 +306,8 @@ def main(data_dir, reef_name, username, password):
         version = '6'
         time_start = '2001-01-01T00:00:00Z'
         time_end = '2019-03-07T22:09:38Z'
-        bounding_box = ''
-        polygon = '-109,37,-102,37,-102,41,-109,41,-109,37'
+        bounding_box = '-109,37,-102,37,-102,41,-109,41,-109,37'
+        polygon = ''
         filename_filter = '*A2019*'  # '*2019010204*'
         url_list = []
 

@@ -12,7 +12,8 @@ def p_is2(m,is2,laser,images_fp):
     #readjusting photon depths to the sea level
     f = is2.get_sea_level_function(laser)
     # print(f)
-    sea = f(m.Latitude)
+    lats = m.Latitude.drop_duplicates()
+    sea = f(lats)
     mean_sea = np.mean(sea)
     sea = sea - np.mean(sea)
 
@@ -34,7 +35,12 @@ def p_is2(m,is2,laser,images_fp):
     plt.title('Track: ' + str(track) + ' - Date: ' + str(date.date()) + ' - Laser: ' + laser)
 
     #plotting depth predictions on top of the photon data
-    plt.plot(m.Latitude, sea, linestyle='-', marker='o',color='blue', linewidth=3, markersize=2,alpha = 0.4)
+    # print(sea)
+    # print(len(sea))
+    # print(lats)
+    # print(len(lats))
+    # print(mean_sea)
+    plt.plot(lats, sea, linestyle='-', marker='o',color='blue', linewidth=3, markersize=2)
     depth_prof = plt.plot(m.Latitude, m.Predicted_depth, linestyle='-', marker='o',color='orange', linewidth=1, markersize=2,alpha = 0.4)
     plt.savefig(images_fp + '/photon_preds' + str(date.date())+laser + '.png')
     return ax

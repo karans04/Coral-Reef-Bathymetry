@@ -34,7 +34,7 @@ def prep_df(sf,fp,crs):
     Params - 1. sf (Sentinel2_image) - Object for sentinel image
              2. fp (str) - path of depth predictions
              3. crs (dict) - crs of Sentinel-2 image
-    Return - DataFrame - depth predictions 
+    Return - DataFrame - depth predictions
     """
     #reading in the depths
     df = pd.DataFrame.from_csv(fp)
@@ -52,7 +52,7 @@ def prep_df(sf,fp,crs):
 def load_ICESAT_predictions(icesat_proc_path,sf):
     """
     Load in depth predictions over all ICESAT orbits and tracks
-    Params - 1. icesat_proc_path (str) - path to load depth predictions from 
+    Params - 1. icesat_proc_path (str) - path to load depth predictions from
              2. sf (Sentinel2_image) - object for sentinel image
     """
     #appends depth predictions to training dataframe
@@ -64,7 +64,7 @@ def load_ICESAT_predictions(icesat_proc_path,sf):
 
 def get_regressor(reef,sf):
     """
-    Trains a regression model 
+    Trains a regression model
     Params - 1. reef (Coral_Reef) - object representing coral reef
              2. sf (Sentinel2_image) - object representing sentinel image
     Return - lambda function - to predict depths given pixel value
@@ -87,10 +87,10 @@ def get_regressor(reef,sf):
     b8_pix = imgs[3]
     mask_thresh = np.median(b8_pix) + (np.std(b8_pix))
     sf.meta['mask_thresh'] = mask_thresh
-    
+
     def get_pixel_val(coord):
         """
-        Get pixel value given a set of coordinates 
+        Get pixel value given a set of coordinates
         Params - 1. coord (Point) - point of interest
         Return int - pixel value at point
         """
@@ -118,7 +118,7 @@ def get_regressor(reef,sf):
     train = train.loc[train['mask'] == False]
     #calculates the log difference between band2 and band3 pixels
     delta = 0.0001
-    bp = {'B02': min(train.b2), 'B03': min(train.b3)}
+    bp = {'B02': 1, 'B03': 1}
     sf.meta['min_pix'] = bp
     train['b2'] = train['b2'].apply(lambda x: max(delta,x - bp['B02']))
     train['b3'] = train['b3'].apply(lambda x: max(delta,x - bp['B02']))
@@ -145,7 +145,7 @@ def get_regressor(reef,sf):
     # meta['mse_test'] = mse_test
     print('mse train ', str(mse_train))
     print('mse test ', str(mse_test))
-    
+
     #switches independent and dependent variable and generates function to predict depth
     m = reg.coef_[0]
     c = reg.intercept_
@@ -158,7 +158,7 @@ def get_regressor(reef,sf):
 
 def remove_log_outliers(data):
     """
-    Removes outliers for training data 
+    Removes outliers for training data
     Params - 1. data (DataFrame) - training data (pixels and depth predictions
     Return - DataFrame - removed outlieres at 0.5m intervals
     """
@@ -217,15 +217,19 @@ def predict_reef(reg, sf,master_df):
                 #storing the normalised pixel value
                 pix.append([band_2,band_3,band_8])
                 #if the band 8 value is higher than the threshold we predict nan for the height else the depth adjust with the tide
-                if band_8 > mask_thresh:
+                if band_8 > mask_thresh :
                     height.append(np.nan)
                 else:
                     x_feat = math.log(band_2) -  math.log(band_3)
                     pred = (reg(x_feat) - tide_level)
-                    height.append(pred)
+                    if pred >= -30 and pred <= 10:
+                        height.append(pred)
+                    else:
+                        height.append(np.nan)
+
                 x.append(x_coord)
                 y.append(y_coord)
-                
+
     #creating a dataframe with the output information and save that df as a csv
     df = pd.DataFrame([x,y,height,pix,log_pix]).T
     df.columns = ['x','y','Height','normalised_pixel', 'diff']
@@ -234,10 +238,10 @@ def predict_reef(reg, sf,master_df):
         master_df['x'] = df.x
     if 'y' not in master_df.columns:
         master_df['y'] = df.y
-    dt = sf.get_date().strftime("%Y%m%d%H%M%S")
-    master_df[str(dt)] = df.Height
+    dt = sf.get_date()
+    master_df[str(dt.strftime("%Y/%m/%d"))] = df.Height
 
-    out_fn = '{reef_name}_out_{dt}.csv'.format(reef_name = sf.reef_name, dt = dt)
+    out_fn = '{reef_name}_out_{dt}.csv'.format(reef_name = sf.reef_name, dt = dt.strftime("%Y%m%d%H%M%S"))
     out_fp = os.path.join(sf.depth_preds_path, out_fn)
     df.to_csv(out_fp)
     return out_fp,master_df
@@ -253,7 +257,7 @@ def all_safe_files(reef):
     datum = {}
     medians, variances = [], []
     master_df = pd.DataFrame()
-    
+
     median_threshold, variance_threshold = 1, 1
     #gets path of safe files
     reef_path = reef.get_path()
@@ -271,8 +275,8 @@ def all_safe_files(reef):
             imgs_path, depth_preds_path, training_data_path = safe_file.get_file_directories()
             #fits the regressor with training data
             r,m,d = get_regressor(reef,safe_file)
-            
-            #checks if median and variances is between required threshold to be considered a valid image 
+
+            #checks if median and variances is between required threshold to be considered a valid image
             sample_median = np.median(d['diff'])
             sample_variance = np.var(d['diff'])
             medians.append(sample_median)
@@ -287,7 +291,16 @@ def all_safe_files(reef):
                 preds,master_df = predict_reef(r, safe_file,master_df)
                 #plot predictions for each sentinel image
                 reef_plots.plot_reefs(preds,d,safe_file,r)
-    #save file with data of all sentinel images               
+    preds = master_df.drop(['x','y'], axis = 1)
+    len_preds = len(preds.columns)
+    master_df['median'] = preds.apply(lambda x: np.median(x.dropna()) if len(x.dropna()) > int(0.75*len_preds) else np.nan, axis = 1)
+    master_df['mean'] = preds.apply(lambda x: np.mean(x.dropna()) if len(x.dropna()) > int(0.75*len_preds) else np.nan, axis = 1)
+    preds['max'] = preds.apply(max, axis = 1)
+    preds['min'] = preds.apply(min, axis = 1)
+    master_df['range'] = preds['max'] - preds['min']
+    median_df = master_df[['x','y','median']]
+    reef_plots.aggregate_plot(d,median_df,safe_file,'median')
+    #save file with data of all sentinel images
     master_df.to_csv('{outpath}/{reef_name}.csv'.format(outpath = reef.get_outpath(), reef_name=reef_name))
     #plots about training data
     reef_plots.plot_median_variance_graph(medians, variances, median_threshold, variance_threshold,imgs_path)

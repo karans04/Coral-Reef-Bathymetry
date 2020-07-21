@@ -28,6 +28,7 @@ def individual_confidence(df):
     Params - 1. df (DataFrame) - photon dataframe
     Return - DataFrame - added columns for photon confidence
     """
+    # print(df)
     # 0 - land, 1 - ocean, 2 - sea ice, 3 - land ice, 4 - inland water
     df['Conf_land'] = df.apply(lambda x: x.Confidence[0], axis = 1)
     df['Conf_ocean'] = df.apply(lambda x: x.Confidence[1], axis = 1)
@@ -38,7 +39,7 @@ def convert_h5_to_csv(is2_file,laser,out_fp):
     Converts photon data from h5 file to a csv file
     Corrects the photon depths making them relative to sea level, adjusted for refractive index,
     speed of light in water and tide on the day the satellite orbits over reef.
-    
+
     Params - 1. is2_file (IS2_file) - object representing icesat file
     	     2. laser (str) - laser of satellite we want photons for
 	     3. out_fp (str) - path to store csv file
@@ -61,6 +62,9 @@ def convert_h5_to_csv(is2_file,laser,out_fp):
         df = individual_confidence(df)
         #adjusting for sea level, speed of light in water, tide and refractive index
         df,f = water_level.normalise_sea_level(df)
+        if len(df) == 0:
+            print('No photons')
+            return df
         is2_file.set_sea_level_function(f,laser)
         df = water_level.adjust_for_speed_of_light_in_water(df)
         df = water_level.adjust_for_refractive_index(df, tide_level)
@@ -69,15 +73,15 @@ def convert_h5_to_csv(is2_file,laser,out_fp):
     return df
 
 
-def depth_profile_adaptive(df, out_path):
+def depth_profile_adaptive(df, out_path,is2,laser):
     """
     Cleans noisy photons from ICESAT output using an adaptive rolling window
     Params - 1. df (DataFrame) - contains all icesat photons
              2. out_path - path to save cleaned photon data
-    Return - DataFrame - contains cleaned icesat photons	     
+    Return - DataFrame - contains cleaned icesat photons
     """
     #threshold below sea level for which we consider reefs
-    water_level_thresh = -0.5
+    water_level_thresh = 0.5
 
     #generating arrays for the height, latitude
     h,l = [], []
@@ -89,6 +93,8 @@ def depth_profile_adaptive(df, out_path):
 
     #getting just high confidence land photons
     df = df.loc[(df.Conf_land == 4)]
+    if len(df) == 0:
+        return
     df = df.astype({'Latitude': 'float', 'Longitude':'float'})
     #sorting photons by latitude
     df = df.sort_values('Latitude')
@@ -98,15 +104,24 @@ def depth_profile_adaptive(df, out_path):
     z1 = np.polyfit(lon_samples.Latitude, lon_samples.Longitude,1)
     lon_func = np.poly1d(z1)
 
+    f = is2.get_sea_level_function(laser)
+    lats = df.Latitude.drop_duplicates()
+    sea = f(lats)
+    mean_sea = np.mean(sea)
+
+
+
     while start <= end:
         #subsetting photons that fall within window of size dx
 #         temp = df.loc[(df.Latitude >= start-((dx/2))) & (df.Latitude <start+((dx/2)))]
         temp = df.loc[(df.Latitude >= start) & (df.Latitude <start+dx)]
         #getting the midpoint latitude of the window
         mean_lat = (temp.Latitude.max() + temp.Latitude.min()) / 2
-        #subsetting coral reef photons 
-        temp = temp.loc[(temp.Height <  water_level_thresh)]
-
+        #subsetting coral reef photons
+        temp = temp.loc[(temp.Height < f(mean_lat) - mean_sea  - water_level_thresh)]
+        if len(temp) == 0:
+            start += dx
+            continue
         #getting the IQR of photons
         uq = temp["Height"].quantile(0.75)
         lq = temp["Height"].quantile(0.25)
@@ -153,8 +168,8 @@ def depth_profile_adaptive(df, out_path):
                 temp = df.loc[(df.Latitude >= start-(i*(dx/2))) & (df.Latitude <start+(i*(dx/2)))]
                 #get the midpoint of the latitudes in the window
                 mean_lat = (temp.Latitude.max() + temp.Latitude.min()) / 2
-                #get coral reef photons 
-                temp = temp.loc[(temp.Height < water_level_thresh)]
+                #get coral reef photons
+                temp = temp.loc[(temp.Height < f(mean_lat) - mean_sea  - water_level_thresh)]
 
                 #setting counter to move to the next adaptive window
                 i+=1
@@ -190,18 +205,18 @@ def depth_profile_adaptive(df, out_path):
             start = ts + dx
 
     #remove noise
-    h = remove_depth_noise(h)
-    #creating dataframe with the depth and latitudes
-    depth = pd.DataFrame([h,l,lon_func(l)]).T
-    depth.columns = ['Height','Latitude','Longitude']
+    if h:
+        h = remove_depth_noise(h)
+        #creating dataframe with the depth and latitudes
+        depth = pd.DataFrame([h,l,lon_func(l)]).T
+        depth.columns = ['Height','Latitude','Longitude']
 
 
-    #disregards files with less than 10 depth predictions
-    if depth.dropna().shape[0] >= 15:
-        depth.to_csv(out_path)
-        return depth
-    else:
-        return pd.DataFrame()
+        #disregards files with less than 10 depth predictions
+        if depth.dropna().shape[0] >= 15:
+            depth.to_csv(out_path)
+            return depth
+    return pd.DataFrame()
 
 
 
@@ -247,9 +262,9 @@ def process_h5(reef, is2_file):
     """
     Calculate depth predictions for a single ICESAT-2 file
     Params - 1. reef (Coral_Reef) - reef ICESAT-2 is orbiting over
-             2. ise_file (IS2_file) - ICESAT-2 file we are processing 
+             2. ise_file (IS2_file) - ICESAT-2 file we are processing
     """
-    #gets directories to save outfiles to 
+    #gets directories to save outfiles to
     icesat_fp, proc_fp, images_fp,data_plots_path = reef.get_file_drectories()
     #gets reef name and is2 filename without extension
     reef_name = reef.get_reef_name()
@@ -257,23 +272,24 @@ def process_h5(reef, is2_file):
     #looping through each strong laser
     for laser in is2_file.get_strong_lasers():
         print(laser)
-	#path for csv file containing raw photon data
+    	#path for csv file containing raw photon data
         photon_fn = '{reef_name}_photons_{h5_fn}_{laser}.csv'.format(reef_name=reef_name, h5_fn=is2_file_tag, laser=laser)
         photons_path = os.path.join(icesat_fp, photon_fn)
         #loading raw photon data if it exists, else extracting it from h5 file
+        # photons = convert_h5_to_csv(is2_file,laser,photons_path)
         if not os.path.exists(photons_path):
             photons = convert_h5_to_csv(is2_file,laser,photons_path)
         else:
             photons = pd.read_csv(photons_path)
             is2_file.metadata = is2_file.load_json()
-	#if length of photons is zero, move onto next laser
-        print('Number of ICESAT-2 Photons in {laser} is {reef_length}'.format(laser=laser, reef_length=str(len(photons))))
         if len(photons) == 0:
             continue
-	#calculates predicted depths and saves file to the following path
+    	#if length of photons is zero, move onto next laser
+        print('Number of ICESAT-2 Photons in {laser} is {reef_length}'.format(laser=laser, reef_length=str(len(photons))))
+    	#calculates predicted depths and saves file to the following path
         depths_fn =  '{reef_name}_{h5_fn}_{laser}.csv'.format(reef_name=reef_name,h5_fn=is2_file_tag,laser=laser)
         processed_output_path = os.path.join(proc_fp,depths_fn)
-        depth = depth_profile_adaptive(photons,processed_output_path)
+        depth = depth_profile_adaptive(photons,processed_output_path,is2_file,laser)
 
         print('Number of reef Photons in {laser} after cleaning is {reef_length}'.format(laser=laser, reef_length=str(len(depth))))
         if len(depth) != 0:
@@ -283,16 +299,16 @@ def process_h5(reef, is2_file):
             out_df.to_csv(os.path.join(data_plots_path,data_plots_fn))
 	    #plot predicted depths with ICESAT photons
             is2_plot.p_is2(out_df,is2_file,laser,images_fp)
- 
+
 def get_depths(reef):
     """
     Wrapper function that takes in the reef and outputs the depth profile of each reef
-    Params - 1. reef (Coral_Reef) - reef over which the ICESAT satelitte is orbitting 
+    Params - 1. reef (Coral_Reef) - reef over which the ICESAT satelitte is orbitting
     """
     h5_dir = os.path.join(reef.get_path(),'H5')
     #looping through each h5 file and generating cleaned photon data
     for h5_fn in os.listdir(h5_dir):
         if h5_fn.endswith('.h5'):
+            print(h5_fn)
             is2 = is2File.IS2_file(h5_dir, h5_fn,reef.bbox_coords)
             process_h5(reef, is2)
-    

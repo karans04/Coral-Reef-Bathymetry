@@ -23,7 +23,7 @@ def run_pipeline():
     sentinel_username = params['sentinel_username']
     sentinel_password = params['sentinel_password']
     params_f.close()
-
+    print(reef_name)
     reef = coral_reef.Coral_Reef(data_dir, reef_name)
     if redownload_is2:
         is2.main(data_dir, reef_name,earthdata_login,earthdata_password)

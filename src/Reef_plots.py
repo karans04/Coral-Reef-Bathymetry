@@ -15,7 +15,8 @@ import numpy as np
 import os
 
 def plot_median_variance_graph(medians, variances, median_threshold, variance_threshold,outpath):
-    ax=sns.scatterplot(x = medians, y = variances, legend = 'full')
+    fig, ax = plt.subplots()
+    sns.scatterplot(x = medians, y = variances, legend = 'full',ax = ax)
     plt.xlabel('Median pixel value for log difference')
     plt.ylabel('Variance pixel value for log difference')
 
@@ -36,28 +37,50 @@ def plot_median_variance_graph(medians, variances, median_threshold, variance_th
 #method to plot the reef depth histogram and a scatter plot of the same
 def plot_reefs(fp,data,sf,line):
     df = pd.read_csv(fp)
+    reef_name = sf.get_reef_name()
+    dt = sf.get_date().strftime("%Y%m%d%H%M%S")
     #plot histogram of depths
     fig, ax = plt.subplots(1,3,figsize = (28,12))
-    df['Height'].plot.hist(bins = np.arange(-30,20,1), ax = ax[0])
-    ax[0].set_xlabel('Height (m)')
-    ax[0].set_ylabel('Frequency')
-    ax[0].set_title(sf.get_reef_name() + ' Depth Histogram')
+    depth_histogram(ax[0], df, reef_name)
+    line_of_best_fit(ax[1],data,sf,line)
+    reef_scatter(fig,ax[2],df,reef_name,data)
+    fn = '{reef_name}-{date}.png'.format(reef_name = reef_name, date = dt)
+    out = os.path.join(sf.get_img_path(), fn)
+    plt.savefig(out)
+    plt.close(fig)
+    return
 
+def aggregate_plot(data,df,sf, f):
+    df['Height'] = df['median']
+    reef_name = sf.get_reef_name()
+    fig ,ax = plt.subplots(1,2, figsize = (28,12))
+    depth_histogram(ax[0], df, reef_name, f)
+    reef_scatter(fig,ax[1],df,reef_name,data,f)
+    fn = '{reef_name}-{f}.png'.format(reef_name = reef_name, f = f)
+    out = os.path.join(sf.get_img_path(), fn)
+    plt.savefig(out)
+    plt.close(fig)
+
+
+def depth_histogram(ax,df,reef_name, suffix = ''):
+    df['Height'].plot.hist(bins = np.arange(-30,20,1), ax = ax)
+    ax.set_xlabel('Height (m)')
+    ax.set_ylabel('Frequency')
+    ax.set_title('{reef_name} {suffix} Depth Histogram'.format(reef_name = reef_name, suffix = suffix))
+
+
+
+def reef_scatter(fig,ax,df,reef_name,data, suffix = None):
     #getting just depths between +- 45m
     df = df.loc[(df.Height <= 10) & (df.Height >= -25)]
     #creating a color scale at 5m intervals
-
     cmap = cm.colors.ListedColormap(['black','navy','mediumblue' ,'blue','royalblue', 'dodgerblue',
                                      'skyblue','limegreen',  'lime' , 'yellow'
-                                      ,'orange','tomato',
-                                     'red','firebrick' ,'maroon'])
+                                      ,'orange','tomato','red','firebrick' ,'maroon'])
     bounds = np.arange(-25,11,2.5)
-
     norm = BoundaryNorm(bounds,cmap.N)
-
     # extract all colors from the .jet map
     cmaplist = [cmap(i) for i in range(cmap.N)]
-
     # create the new map
     cmap = mpl.colors.LinearSegmentedColormap.from_list(
         'Custom cmap', cmaplist, cmap.N)
@@ -67,42 +90,34 @@ def plot_reefs(fp,data,sf,line):
     cb = mpl.colorbar.ColorbarBase(ax2, cmap=cmap, norm=norm,
         spacing='proportional', ticks=bounds, boundaries=bounds, format='%.1f')
 
-
     #scatter plot of the predicted depths
-    pts = ax[2].scatter(x = df.x, y = df.y, c = df.Height, s= 1, cmap = cmap, norm = norm)
+    pts = ax.scatter(x = df.x, y = df.y, c = df.Height, s= 1, cmap = cmap, norm = norm)
     #scatter plot of the track lines from the ICESAT 2 data
-    ax[2].scatter(x = data.x, y= data.y, s = 3, c = 'black', label = 'ICESAT-2 tracks')
+    ax.scatter(x = data.x, y= data.y, s = 3, c = 'black', label = 'ICESAT-2 tracks')
     custom_lines = [Line2D([0], [0], color='black', lw=4)]
-    ax[2].legend(custom_lines, ['ICESAT-2 tracks'])
-    ax[2].set_xlabel('x')
-    ax[2].set_ylabel('y')
-    ax[2].set_title(sf.get_reef_name() + ' Depth Predictions (m)')
+    ax.legend(custom_lines, ['ICESAT-2 tracks'])
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_title('{reef_name} {suffix} Depth Predictions (m)'.format(reef_name = reef_name, suffix = suffix))
 
 
+def line_of_best_fit(ax,data,sf,line):
     r = 3
-    sns.scatterplot(x = data['diff'], y = data.Height, color = 'blue', ax = ax[1])
-    sns.lineplot(x = [-r,r], y = [line(-r),line(r)], color = 'black', ax = ax[1])
-    ax[1].set_xlabel('Log(Blue Band) - Log(Green Band)')
-    ax[1].set_ylabel('Depth')
-    xt = (list(ax[1].get_xticks()))[:-1]
+    sns.scatterplot(x = data['diff'], y = data.Height, color = 'blue', ax = ax)
+    sns.lineplot(x = [-r,r], y = [line(-r),line(r)], color = 'black', ax = ax)
+    ax.set_xlabel('Log(Blue Band) - Log(Green Band)')
+    ax.set_ylabel('Depth')
+    xt = (list(ax.get_xticks()))[:-1]
 
     for i,x in enumerate(xt):
         xt[i] = np.round(x,2)
-    ax[1].set_title(sf.get_date().strftime("%Y%m%d%H%M%S") + ' -> tide - ' + str(sf.get_tide()) + 'm')
+    ax.set_title(sf.get_date().strftime("%Y/%m/%d %H:%M:%S") + ' -> tide - ' + str(sf.get_tide()) + 'm')
     xlim = (-r, r)
     ylim = ( -25,0)
-    plt.setp(ax[1], xlim=xlim, ylim=ylim)
-
-
-    fn = sf.get_reef_name() + '-' + sf.get_date().strftime("%Y%m%d%H%M%S")+ '.png'
-    out = os.path.join(sf.get_img_path(), fn)
-    plt.savefig(out)
-    plt.close(fig)
-    return
-
+    plt.setp(ax, xlim=xlim, ylim=ylim)
 
 def corr_plot(datum,reef_name,outpath):
-    r = 6
+    r = 3
     num_blocks = int(np.ceil(np.sqrt(len(datum))))
     fig, ax = plt.subplots(num_blocks,num_blocks, figsize = (20,24))
     xlim = (-r, r)

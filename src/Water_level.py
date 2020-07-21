@@ -8,9 +8,12 @@ def get_water_level(df):
     Params - 1. df (Dataframe) - photon depth, lat, lon
     Return np.poly1d - function representing the sea level
     """
+
     water,lat = [],[]
     #gets just ocean photons
     df = df.loc[df.Conf_ocean == 4]
+    if len(df) == 0:
+        return None
     #getting photons +- 2 of the median height of photons
     df = df.loc[(df.Height > df.Height.median() - 2) & (df.Height < df.Height.median() + 2)]
 
@@ -37,10 +40,10 @@ def get_water_level(df):
 
 def adjust_for_speed_of_light_in_water(df):
     """
-    Adjust photon depth to account for change in the speed of photons 
+    Adjust photon depth to account for change in the speed of photons
     in air and water.
     Params - 1. df(Dataframe) - photon depth, lat, lon
-    Return Dataframe - photon depth, lat, lon 
+    Return Dataframe - photon depth, lat, lon
     """
     speed_of_light_air = 300000
     speed_of_light_water = 225000
@@ -68,6 +71,8 @@ def normalise_sea_level(df):
     """
     #calculating sea level
     f = get_water_level(df)
+    if not f:
+        return pd.DataFrame(), None
     #getting ocean and reef photons
     df = df.loc[(df.Conf_ocean == 4) | (df.Conf_land == 4)]
     #adjust photons to sea level

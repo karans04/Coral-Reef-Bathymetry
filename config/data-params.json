@@ -1,7 +1,7 @@
 {
-  "reef_name" : "Moce",
+  "reef_name" : "Nan_Modal",
   "data_dir" : "data",
-  "redownload_is2": 0,
+  "redownload_is2": 1,
   "earthdata_login": "",
   "earthdata_password": "",
   "sentinel_username": "",
