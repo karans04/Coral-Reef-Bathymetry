@@ -3,7 +3,7 @@ Coral_Reef.py is a class used to represent a coral reef.
 Requirements - create a folder in the data directory named after the reef. The folder must contain a geojson file with a POLYGON of the reef. The geojson must be named after the reef -> reef_name.geojson
 
 To create a coral reef object: </br>
-import Coral_Reef as coral_reef </br>
+import src.Coral_Reef as coral_reef </br>
 reef = coral_reef.Coral_Reef(data_dir, reef_name)</br>
 
 Methods that a reef object can call: </br>
