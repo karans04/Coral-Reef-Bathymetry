@@ -19,7 +19,7 @@ class Coral_Reef():
         self.reef_path = os.path.join(self.data_dir, self.reef_name)
         #stores coordinates of bounding box
         self.bbox_coords = self.get_bounding_box()
-        
+
         #creating directories to save data output
         self.outfile_path = os.path.join(self.reef_path, 'Output')
         self.data_cleaning_path = os.path.join(self.outfile_path, 'Data_Cleaning')
@@ -33,7 +33,7 @@ class Coral_Reef():
 
     def get_reef_name(self):
         """
-        Return - str - name of coral reef 
+        Return - str - name of coral reef
         """
         return self.reef_name
 
@@ -60,7 +60,7 @@ class Coral_Reef():
 
     def get_file_drectories(self):
         """
-        Return - [output paths] - paths 
+        Return - [output paths] - paths
         """
         return [self.icesat_path,self.proc_path,self.images_path,self.data_plots_path]
 
@@ -78,7 +78,11 @@ class Coral_Reef():
         #loads in geojson of reef into geopandasa
         geojson_fp = os.path.join(self.reef_path, self.reef_name + '.geojson')
         reef_gjson = gpd.read_file(geojson_fp)
+        print(reef_gjson)
         #returns coordinates of bounding box around coral reef
         reef_polygon = reef_gjson.geometry[0]
+        if reef_polygon.geom_type != 'Polygon':
+            print('Please ensure that the geojson file contains a polygon!!!!!')
+            return None
         coords = reef_polygon.bounds
         return coords

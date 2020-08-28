@@ -1,14 +1,15 @@
 {
-  "reef_name" : "Nan_Modal",
+  "reef_name" : "Ono-i-Lau",
   "data_dir" : "data",
   "redownload_is2": 1,
   "earthdata_login": "",
   "earthdata_password": "",
   "sentinel_username": "",
   "sentinel_password": "",
-  "download_sentinel":1,
+  "download_sentinel":0,
   "sentinel_start_date": "20190101",
   "sentinel_end_date": "20200331",
   "num_sentinel_imgs": 12,
-  "world_tide_API_key": ""
+  "world_tide_API_key": "",
+  "tz_API_key": ""
 }

@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 import math
 import geopandas as gpd
+import pyproj as proj
+from sklearn.cluster import DBSCAN
 
 import src.Water_level as water_level
 import src.Coral_Reef as coral_reef
@@ -70,7 +72,50 @@ def convert_h5_to_csv(is2_file,laser,out_fp):
         df = water_level.adjust_for_refractive_index(df, tide_level)
         #writes a dataframe containing just the photon data that is required
         df.to_csv(out_fp)
+    else:
+        print('No photons')
     return df
+
+
+
+def apply_DBSCAN(df, out_path, is2, laser):
+    empty_df = pd.DataFrame()
+    #threshold below sea level for which we consider reefs
+    water_level_thresh = 0.5
+    #getting just high confidence land photons
+    df = df.loc[(df.Conf_land == 4)]
+    if len(df) == 0:
+        return empty_df
+
+
+    # setup your projections
+    crs_wgs = proj.Proj(init='epsg:4326') # assuming you're using WGS84 geographic
+    crs_bng = proj.Proj(init='epsg:3857') # use a locally appropriate projected CRS
+
+    # then cast your geographic coordinate pair to the projected system
+    df['x'], df['y'] = proj.transform(crs_wgs, crs_bng, df.Longitude.values, df.Latitude.values)
+    dbscan = DBSCAN(eps = 1, min_samples = 5)
+
+    f = is2.get_sea_level_function(laser)
+    sea = df['Latitude'].apply(f)
+    mean_sea = np.mean(sea)
+    sea -= mean_sea
+    df['sea_level'] = sea
+    df = df.loc[df.Height < df.sea_level-water_level_thresh]
+    x = df[['Height','x']]
+    if len(x) == 0:
+        return empty_df
+    model = dbscan.fit(x)
+    labels = model.labels_
+    df['labels'] = labels
+    reef_ph = df.loc[df.labels >= 0]
+    if len(reef_ph) < 1000:
+        return empty_df
+
+    df.to_csv(out_path)
+    return df
+
+
 
 
 def depth_profile_adaptive(df, out_path,is2,laser):
@@ -94,12 +139,12 @@ def depth_profile_adaptive(df, out_path,is2,laser):
     #getting just high confidence land photons
     df = df.loc[(df.Conf_land == 4)]
     if len(df) == 0:
-        return
+        return pd.DataFrame()
     df = df.astype({'Latitude': 'float', 'Longitude':'float'})
     #sorting photons by latitude
     df = df.sort_values('Latitude')
 
-    #getting line of best fit for longitudes using ICESAT photon data
+
     lon_samples = df.sample(min(1000, len(df)))
     z1 = np.polyfit(lon_samples.Latitude, lon_samples.Longitude,1)
     lon_func = np.poly1d(z1)
@@ -133,6 +178,7 @@ def depth_profile_adaptive(df, out_path,is2,laser):
             min_depth = math.ceil(temp.Height.min()-1)
             max_depth = min(0,math.ceil(temp.Height.max()))
             median_depth = pd.DataFrame()
+
 
             #iterating through intervals of 0.5m at a time
             for x in range(min_depth,max_depth):
@@ -205,7 +251,7 @@ def depth_profile_adaptive(df, out_path,is2,laser):
             start = ts + dx
 
     #remove noise
-    if h:
+    if len(h) >= 2:
         h = remove_depth_noise(h)
         #creating dataframe with the depth and latitudes
         depth = pd.DataFrame([h,l,lon_func(l)]).T
@@ -244,18 +290,22 @@ def combine_is2_reef(is2, depths):
     Params - 1. is2 (DataFrame) - ICESAT-2 photons
     	     2. depths (DataFrame) - cleaned photons
     """
+    is2 = is2[['Latitude', 'Longitude', 'Height']]
+    depths = depths[['Latitude', 'Longitude','Height' ,'labels']]
     #casting to float
     is2 = is2.astype({'Latitude': 'float', 'Longitude':'float'})
     depths = depths.astype({'Latitude': 'float', 'Longitude':'float'})
     #rounding to 4dp
     is2['Latitude'] = np.round(is2['Latitude'], decimals=4)
     is2['Longitude'] = np.round(is2['Longitude'], decimals=4)
-    is2['Photon_depth'] = is2['Height']
+    # is2['Photon_depth'] = is2['Height']
     depths['Latitude'] = np.round(depths['Latitude'], decimals=4)
     depths['Longitude'] = np.round(depths['Longitude'], decimals=4)
-    depths['Predicted_depth'] = depths['Height']
+    # depths['Predicted_depth'] = depths['Height']
     #merging on lat,lon
-    return is2[['Latitude', 'Longitude', 'Photon_depth']].merge(depths[['Latitude', 'Longitude', 'Predicted_depth']], on = ['Latitude', 'Longitude'], how = 'outer')
+    merged =  is2.merge(depths, on = ['Latitude', 'Longitude', 'Height'], how = 'outer')
+    merged['labels'] = merged['labels'].fillna(-2)
+    return merged
 
 
 def process_h5(reef, is2_file):
@@ -289,7 +339,7 @@ def process_h5(reef, is2_file):
     	#calculates predicted depths and saves file to the following path
         depths_fn =  '{reef_name}_{h5_fn}_{laser}.csv'.format(reef_name=reef_name,h5_fn=is2_file_tag,laser=laser)
         processed_output_path = os.path.join(proc_fp,depths_fn)
-        depth = depth_profile_adaptive(photons,processed_output_path,is2_file,laser)
+        depth = apply_DBSCAN(photons,processed_output_path,is2_file,laser)
 
         print('Number of reef Photons in {laser} after cleaning is {reef_length}'.format(laser=laser, reef_length=str(len(depth))))
         if len(depth) != 0:

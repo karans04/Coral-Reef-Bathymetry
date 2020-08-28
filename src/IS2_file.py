@@ -11,7 +11,7 @@ class IS2_file():
     """
     Class to represent an ICESAT-2 file
     """
-    
+
     def __init__(self,h5_dir,h5_fn,bbox_coordinates):
         """
         Initialise ICESAT-2 file object
@@ -33,7 +33,7 @@ class IS2_file():
             self.strong_lasers = ['gt1l', 'gt2l', 'gt3l']
         #load in json with metadata
         metadata = self.load_json()
-        #create new entry for current h5 file 
+        #create new entry for current h5 file
         metadata[self.h5_fn] = {}
         #load in tide or calculate it if it doesnt exist
         if 'tide' in metadata[self.h5_fn]:
@@ -110,7 +110,7 @@ class IS2_file():
     def write_json(self,d):
         """
         Outputs a file containing the metadata of all ICESAT-2 files
-        Params - 1. d (dict) - dictionary containing metadata 
+        Params - 1. d (dict) - dictionary containing metadata
         """
         reef_path = os.path.dirname(self.h5_dir)
         metadata_path = os.path.join(reef_path, 'ICESAT_metadata.json')
@@ -141,7 +141,7 @@ class IS2_file():
 
     def get_orientation(self):
         """
-        Extract the orientation of the satelitte 
+        Extract the orientation of the satelitte
         Return - int - sc orientation
         """
         #loads in h5 file and extracts the sc orientation
@@ -163,3 +163,16 @@ class IS2_file():
         lon = photon_data['lon_ph'][...]
         conf = photon_data['signal_conf_ph'][...]
         return [height,lat,lon,conf]
+
+    def get_tide_ib(self, laser):
+        """
+        Extract the required photon information from ICESAT-2 data output
+        Return - list - required photon data output
+        """
+        #load in h5 file
+        h5 = h5py.File(self.h5_file,'r')
+        #returns list of photon height, lat,lon and photon confidence
+        photon_data = h5[laser]['geophys_corr']
+        tide = photon_data['tide_ocean'][...]
+        ib = photon_data['dac'][...]
+        return [tide,ib]

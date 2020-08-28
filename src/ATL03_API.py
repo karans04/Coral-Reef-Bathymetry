@@ -289,8 +289,9 @@ def main(data_dir, reef_name, username, password):
         import geopandas as gpd
         from shapely.geometry import mapping
 
-        coords = gpd.read_file(gj_fp)['geometry'][0].bounds
-        coords = [str(i) for i in coords]
+        coords = gpd.read_file(gj_fp)['geometry'][0]
+        print(type(coords))
+        coords = [str(i) for i in coords.bounds]
 
         bounding_box = ','.join(coords)
         today = date.today()
@@ -315,7 +316,7 @@ def main(data_dir, reef_name, username, password):
         url_list = cmr_search(short_name, version, time_start, time_end,
                               bounding_box=bounding_box,
                               polygon=polygon, filename_filter=filename_filter)
-
+        print(url_list, download_path)
         cmr_download(url_list,username,password,download_path)
 
 

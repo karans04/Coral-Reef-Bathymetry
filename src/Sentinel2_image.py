@@ -27,7 +27,7 @@ class Sentinel2_image():
         self.reef_path = os.path.dirname(safe_file_path)
         self.safe_file = os.path.basename(safe_file_path)
         self.reef_name = os.path.basename(self.reef_path)
-        
+
         #generating outpaths
         self.predictions_path = os.path.join(self.reef_path,'Output', 'Depth_Predictions')
         self.imgs_path = os.path.join(self.predictions_path, 'Imgs')
@@ -36,15 +36,15 @@ class Sentinel2_image():
         self.dirs = [self.predictions_path, self.imgs_path, self.depth_preds_path,\
                         self.training_data_path]
         self.create_directories()
-        
+
         #generating path of metadata
         fn = 'MTD_TL.xml'
         self.meta_path = list(Path(self.reef_path).glob('**/' + self.safe_file + '/**/' + fn))[0]
         self.meta = self.get_metadata()
-        
+
         #calculating tide on day of sentinel-2 image
         self.tide_level = tide.get_tide(coords,self.get_date())
-        
+
     def create_directories(self):
         """
         Create output directories
@@ -107,7 +107,7 @@ class Sentinel2_image():
         #getting the crs of the image
         geo_info = soup.find('n1:Geometric_Info')
         meta['crs'] = geo_info.find('HORIZONTAL_CS_CODE').text.lower()
-        
+
         #getting the step of the image in the x and y dircetions
         geo_pos = geo_info.find('Geoposition' , {'resolution':"10"})
         meta['xdim'] = int(geo_pos.find('XDIM').text)
@@ -168,15 +168,25 @@ class Sentinel2_image():
         #get upper left coordinates of bounding box
         self.meta['ulx'] = bb.minx[0]
         self.meta['uly'] = bb.maxy[0]
-
+        from earthpy.spatial import crop_image
         #loops through the bands
         for b in bands:
             #getting paths for each band image
             img_dir = os.path.dirname(self.meta_path)
             img_path = list(Path(img_dir).glob('**/' + 'IMG_DATA' + '/**/*'+b+'_10m.jp2'))[0]
-            #reads in image and crops out the reef
             band = rasterio.open(img_path, driver = 'JP2OpenJPEG')
-            out_image, out_transform = mask.mask(band, geom, crop=True)
-            imgs.append(out_image)
+            out_img, out_transform = mask.mask(band, geom, crop = True, nodata = 0)
+            imgs.append(out_img)
         self.meta['imgs'] = imgs
         return imgs
+
+    def get_tci(self):
+        #get bounding box coordinates of coral reef
+        geom = self.read_gjson()['geometry']
+        #[min-x, min-y, max-x, max-y]
+        bb = geom.bounds
+        img_dir = os.path.dirname(self.meta_path)
+        img_path = list(Path(img_dir).glob('**/' + 'IMG_DATA' + '/**/*'+'TCI'+'_10m.jp2'))[0]
+        band = rasterio.open(img_path, driver = 'JP2OpenJPEG')
+        out_img, out_transform = mask.mask(band, geom, crop = True, nodata = 0)
+        return out_img

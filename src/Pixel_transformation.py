@@ -36,17 +36,22 @@ def prep_df(sf,fp,crs):
              3. crs (dict) - crs of Sentinel-2 image
     Return - DataFrame - depth predictions
     """
+
     #reading in the depths
     df = pd.DataFrame.from_csv(fp)
     #adjusting the heights based on the tide on the given day
     df.Height = df.Height + sf.get_tide()
+    # print(df.columns)
+    df = df[['Latitude', 'Longitude', 'Height', 'labels']]
 
+    df = df.loc[df['labels'] > 0]
     #converts the lat and lon to the crs of the image
     df['Coordinates'] = list(zip(df.Longitude, df.Latitude))
     df['Coordinates'] = df.Coordinates.apply(Point)
     df = gpd.GeoDataFrame(df, geometry = 'Coordinates')
     df.crs = {'init': 'epsg:4326'}
     df = df.to_crs(crs)
+    # print(df)
     return df
 
 def load_ICESAT_predictions(icesat_proc_path,sf):
@@ -58,8 +63,9 @@ def load_ICESAT_predictions(icesat_proc_path,sf):
     #appends depth predictions to training dataframe
     train = pd.DataFrame()
     for fn in os.listdir(icesat_proc_path):
-        train_path = os.path.join(icesat_proc_path, fn)
-        train = pd.concat([train,prep_df(sf,train_path,sf.get_crs())])
+        if fn.endswith('.csv'):
+            train_path = os.path.join(icesat_proc_path, fn)
+            train = pd.concat([train,prep_df(sf,train_path,sf.get_crs())])
     return train
 
 def get_regressor(reef,sf):
@@ -81,13 +87,17 @@ def get_regressor(reef,sf):
 
     #drop any nan rows
     train = train.dropna()
-    train['x'] = train.Coordinates.x
-    train['y'] = train.Coordinates.y
+    image_resolution = 10
+    train['x'] = (train.Coordinates.x // image_resolution) * image_resolution
+    train['y'] = (train.Coordinates.y // image_resolution) * image_resolution
+    train.groupby(['x','y'])['Height'].median()
     #creates the masking threshold for band 8 to mask land and clouds
     b8_pix = imgs[3]
-    mask_thresh = np.median(b8_pix) + (np.std(b8_pix))
+    b8_pix = b8_pix.astype('float')
+    b8_pix[b8_pix == 0] =np.NaN
+    mask_thresh = np.nanmedian(b8_pix) + (0.75*np.nanstd(b8_pix))
     sf.meta['mask_thresh'] = mask_thresh
-
+    # print(sf.meta['mask_thresh'])
     def get_pixel_val(coord):
         """
         Get pixel value given a set of coordinates
@@ -96,7 +106,13 @@ def get_regressor(reef,sf):
         """
         x_index = int((coord.x - meta['ulx']) // meta['xdim'])
         y_index = int((coord.y - meta['uly']) // (meta['ydim']))
-        return [data[0][y_index][x_index] for data in imgs]
+        img_shape = imgs[0][0].shape
+        # print(coord.x,x_index, coord.y, y_index)
+        if y_index < img_shape[0] and x_index < img_shape[1]:
+            pix_val =  [data[0][y_index][x_index] for data in imgs]
+        else:
+            pix_val = [0 for data in imgs]
+        return pix_val
 
     def extract_pixel_cols(df):
         """
@@ -108,20 +124,25 @@ def get_regressor(reef,sf):
         df['b2'] = df.Pixels.apply(lambda x: (x[0]))
         df['b3'] = df.Pixels.apply(lambda x: (x[1]))
         df['b8'] = df.Pixels.apply(lambda x: (x[3]))
+        print(sf.meta['mask_thresh'])
         #converts points with pixel values above the mask threshold to nan
         df['mask'] = df.b8.apply(lambda x: False if x < mask_thresh else True)
         return df
-
+    # display(train)
     train = extract_pixel_cols(train)
+    # print(train)
     #remove cloud pixels and zeroed out pixels
     train = train.loc[(train.b3 != 0) & (train.b2 != 0)]
+
     train = train.loc[train['mask'] == False]
+    # print(train.shape)
     #calculates the log difference between band2 and band3 pixels
     delta = 0.0001
-    bp = {'B02': 1, 'B03': 1}
+    bp = {'B02': 0, 'B03': 0}
     sf.meta['min_pix'] = bp
     train['b2'] = train['b2'].apply(lambda x: max(delta,x - bp['B02']))
     train['b3'] = train['b3'].apply(lambda x: max(delta,x - bp['B02']))
+    # print(train)
     train['diff'] = train.apply(lambda x: (math.log(x['b2']) - math.log(x['b3'])), axis = 1)
 
     train_data_cleaned = remove_log_outliers(train)

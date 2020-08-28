@@ -28,9 +28,8 @@ def get_water_level(df):
     z = np.polyfit(sea_level.latitude, sea_level.water,1)
     f = np.poly1d(z)
 
-    #getting absolute error for each point
+    #getting points with <2m abs error
     sea_level['abs_diff'] = np.abs(sea_level.water - f(sea_level.latitude))
-    #retaining only points with absolute error less than 2
     sea_level = sea_level.loc[sea_level.abs_diff < 2]
     #fitting a parabolic function to the remaining points
     z2 = np.polyfit(sea_level.latitude, sea_level.water,2)

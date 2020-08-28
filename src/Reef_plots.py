@@ -9,6 +9,7 @@ import matplotlib.gridspec as gridspec
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from matplotlib import patches
+from rasterio import plot
 
 import pandas as pd
 import numpy as np
@@ -53,16 +54,23 @@ def plot_reefs(fp,data,sf,line):
 def aggregate_plot(data,df,sf, f):
     df['Height'] = df['median']
     reef_name = sf.get_reef_name()
-    fig ,ax = plt.subplots(1,2, figsize = (28,12))
+    fig ,ax = plt.subplots(1,3, figsize = (28,12))
     depth_histogram(ax[0], df, reef_name, f)
-    reef_scatter(fig,ax[1],df,reef_name,data,f)
+    reef_scatter(fig,ax[2],df,reef_name,data,f)
+    tci(sf,ax[1])
     fn = '{reef_name}-{f}.png'.format(reef_name = reef_name, f = f)
     out = os.path.join(sf.get_img_path(), fn)
     plt.savefig(out)
     plt.close(fig)
 
+def tci(sf,ax):
+    tci = sf.get_tci()
+    plot.show(tci, ax=ax)
+
+
 
 def depth_histogram(ax,df,reef_name, suffix = ''):
+
     df['Height'].plot.hist(bins = np.arange(-30,20,1), ax = ax)
     ax.set_xlabel('Height (m)')
     ax.set_ylabel('Frequency')
@@ -70,9 +78,10 @@ def depth_histogram(ax,df,reef_name, suffix = ''):
 
 
 
-def reef_scatter(fig,ax,df,reef_name,data, suffix = None):
+def reef_scatter(fig,ax,df,reef_name,data, suffix = ''):
     #getting just depths between +- 45m
     df = df.loc[(df.Height <= 10) & (df.Height >= -25)]
+    # df = df.loc[df.Height >= 0]
     #creating a color scale at 5m intervals
     cmap = cm.colors.ListedColormap(['black','navy','mediumblue' ,'blue','royalblue', 'dodgerblue',
                                      'skyblue','limegreen',  'lime' , 'yellow'
