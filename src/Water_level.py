@@ -47,7 +47,7 @@ def adjust_for_speed_of_light_in_water(df):
     speed_of_light_air = 300000
     speed_of_light_water = 225000
     coef = speed_of_light_water / speed_of_light_air
-    df['Height'] = df['Height'] * coef
+    df['Height'] = (df['Height']- tide_level) * coef
     return df
 
 def adjust_for_refractive_index(df, tide_level):
@@ -58,7 +58,7 @@ def adjust_for_refractive_index(df, tide_level):
     Return - Dataframe - photon depth, lat, lon
     """
     refractive_index_salt_water = 1.33
-    df['Height'] = (df['Height'] - tide_level) / refractive_index_salt_water
+    df['Height'] = (df['Height']) / refractive_index_salt_water
     return df
 
 def normalise_sea_level(df):
