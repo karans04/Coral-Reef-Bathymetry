@@ -37,7 +37,7 @@ def get_water_level(df):
 
     return f2
 
-def adjust_for_speed_of_light_in_water(df):
+def adjust_for_speed_of_light_in_water(df, tide_level):
     """
     Adjust photon depth to account for change in the speed of photons
     in air and water.
@@ -50,7 +50,7 @@ def adjust_for_speed_of_light_in_water(df):
     df['Height'] = (df['Height']- tide_level) * coef
     return df
 
-def adjust_for_refractive_index(df, tide_level):
+def adjust_for_refractive_index(df):
     """
     Adjust photon depth with regards to tide and refractive index
     Params - 1. df (Dataframe) - photon depth, lat, lon
