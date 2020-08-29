@@ -69,7 +69,7 @@ def convert_h5_to_csv(is2_file,laser,out_fp):
             return df
         is2_file.set_sea_level_function(f,laser)
         df = water_level.adjust_for_speed_of_light_in_water(df)
-        df = water_level.adjust_for_refractive_index(df, tide_level)
+#         df = water_level.adjust_for_refractive_index(df, tide_level)
         #writes a dataframe containing just the photon data that is required
         df.to_csv(out_fp)
     else:
