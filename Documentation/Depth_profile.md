@@ -9,7 +9,7 @@ Files could also be downloaded using https://github.com/karans04/Coral-Reef-Bath
 </blockquote> </br></br>
 Work flow </br></br>
 
-![image info](./Depth_profile.png)
+![image info](./assets/Depth_profile.png)
 
 Functions 
 
