@@ -8,6 +8,7 @@ In working directory, there should be a folder called data containing a subfolde
 Files could also be downloaded using https://github.com/karans04/Coral-Reef-Bathymetry/blob/master/src/ATL03_API.py. 
 </blockquote> </br></br>
 Work flow </br>
+
 ![image info](./Depth_profile.png)
 
 Functions 
