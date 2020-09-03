@@ -51,5 +51,5 @@ To run on a single Sentinel2 image: </br>
 • reg, meta, data = get_regressor(reef, safe_file) </br>
 •	preds,master_df = predict_reef(reg,safe_file, master_df)</br>
 </br>
-To plot import src.reef_plots as reef_plots </br>
+To plot import src.Reef_plots as reef_plots </br>
 reef_plots.plot_reefs(preds,data,safe_file,reg)
