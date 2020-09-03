@@ -43,3 +43,13 @@ pd.DataFrame - contains depth predictions across multiple sentinel images.
 
 8. all_safe_file( reef (Coral_Reef Object) ) - controller function to make depth predictions for reef over all Sentinel images. Also creates visualisations for the same.</br>
 Return dict - sentinal image: [regressor,metadata,training data] </br>
+
+
+</br>
+To run on a single Sentinel2 image: </br>
+• master_df = pd.DataFrame()	
+• reg, meta, data = get_regressor(reef, safe_file)
+•	preds,master_df = predict_reef(reg,safe_file, master_df)
+
+To plot import src.reef_plots as reef_plots
+reef_plots.plot_reefs(preds,data,safe_file,reg)
