@@ -7,22 +7,45 @@ In working directory, there should be a folder called data containing a subfolde
 </br></br>
 Run depth_profile.py for the reef. Output will be saved in data/reef_name/Output/Data_Cleaning/Processed_output
 </blockquote> </br></br>
-Functions 
 
 
 Functions </br>
-1. prep_df(sf, fp,crs) 
+1. prep_df( sf (Sentinel2_image object) , fp (str) , crs (dict) ) - helper function to load in ICESAT2 training data file and convert it to the crs of the Sentinel method.
 </br>
-2. load_ICESAT_predictions(icesat_proc_path, sf)
+Returns - pd.DataFrame - depth prediction
 </br>
-3. get_regressor(reef, sf)
+
+2. load_ICESAT_predictions( icesat_proc_path (str) , sf (Sentinel2_image object) ) - concatenates all ICESAT2 training data into one dataframe. 
 </br>
-4. get_pixel_val(coord)
+Returns pd.DataFrame - training data
 </br>
-5. extract_pixel_cols(df)
+
+3. get_regressor( reef (Coral_Reef Object) , sf (Sentinel2_image object) ) - uses the training data and pixel values to create a linear regression. 
+Returns lambda - for linear regression </br>
+dict - containing metadata about sentinel image </br>
+pd.DataFrame - containing training data (depth, pixel values) 
 </br>
-6. remove_log_outliers(data)
+
+4. get_pixel_val( coord (Coordinates) ) - returns the pixel values across different bands in the Sentinel image for the passed in coordinates. Inner function in get_regressor().
 </br>
-7. predict_reef(ref, sf, master_df)
+Return [band2, band3, band4, band8]
 </br>
-8. all_safe_file(reef)
+
+5. extract_pixel_cols( df (pd.DataFrame) ) - explode list of band pixel values to separate columns for each band. Inner function in get_regressor(). 
+</br>
+Return pd.DataFrame - same as input df, but with added columns for each band
+</br>
+
+6. remove_log_outliers( data (pd.DataFrame) ) - iterates through training depths 0.5m at a time and removes all outliers. 
+Returns pd.DataFrame - excluding outliers
+</br>
+
+7. predict_reef( reg (lambda function), sf (Sentinel2_image object), master_df (pd.DataFrame) ) - Make predictions for the rest of the reef, by passing log band values into reg.
+</br>
+Return str - outpath to depth predictions for the entire reef </br>
+pd.DataFrame - contains depth predictions across multiple sentinel images.
+</br>
+
+8. all_safe_file( reef (Coral_Reef Object) ) - controller function to make depth predictions for reef over all Sentinel images. Also creates visualisations for the same.
+</br>
+Return dict - sentinal image: [regressor,metadata,training data] </br>
