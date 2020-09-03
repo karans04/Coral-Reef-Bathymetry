@@ -7,6 +7,9 @@ In working directory, there should be a folder called data containing a subfolde
 - a folder named H5 which contains ICESat-2 ATL03 data files for this reef. These are HDF5 files that can be obtained from OpenAltimetry ( http://www.openaltimetry.org) or from NASA EarthData search (https://search.earthdata.nasa.gov/search/granules?p=C1705401930-NSIDC_ECS). </br>
 Files could also be downloaded using https://github.com/karans04/Coral-Reef-Bathymetry/blob/master/src/ATL03_API.py. 
 </blockquote> </br></br>
+
+![image info](./Depth_profile.png)
+
 Functions 
 
 1. create_photon_df( photon_data - [Height,Latitude,Longitude,Confidence] ) - data obtained from h5 file. </br>
