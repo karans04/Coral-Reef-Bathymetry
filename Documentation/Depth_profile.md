@@ -11,16 +11,25 @@ Functions
 
 1. create_photon_df( photon_data - [Height,Latitude,Longitude,Confidence] ) - data obtained from h5 file. </br>
 Return - pd.DataFrame </br>
+
 2. individual_confidence( df (pd.DataFrame) ) - helper function that converts the confidence array into individual confidence scores for land, ocean, sea ice, land ice and inland water. Adds each confidence score as a new column to the pandas dataframe passed in. </br>
 Return - pd.DataFrame </br>
-3. convert_h5_to_csv( is2_file (IS2_file object), laser (str) , out_fp (str) ) - helper function that saves a csv in out_fp (fielpath) for the given laser of the h5 file.
+
+3. convert_h5_to_csv( is2_file (IS2_file object), laser (str) , out_fp (str) ) - helper function that saves a csv at out_fp (fielpath) for the passed in laser of the h5 file.
 Return - pd.DataFrame </br>
-4. apply_DBSCAN(df, out_path, is2 (IS2_file object), laser(str) ) - apply DBSCAN algorithm on photon data to cluster between reef and noise. 
-5. depth_profile_adaptive( df (pd.DataFrame), out_path (str), is2 (IS2_file object),laser(str) ) - rolling window (dx = 0.0005) - Gets median of all photons in window. </br>
+
+4. apply_DBSCAN( df (pd.DataFrame), out_path (str), is2 (IS2_file object), laser(str) ) - apply DBSCAN algorithm on photon data to cluster between reef and noise. Adds a column called labels that determines if the photon is reef or noise. Labels >= 0 are reef photons.
 Return - pd.DataFrame </br>
-6. remove_depth_noise( depths ([depth_predictions]) ) - retains depth predictions at index i, if i-1 and i+1 are not nan. Only required if depth_profile_adaptive is used instead of DBSCAN.
-Return [depth_predictions]
-7. combine_is2_reef( is2 (IS2_file object),depths (pd.DataFrame) ) - combines depth_predictions with photon data. Only required if depth_profile_adaptive is used instead of DBSCAN. 
-Returns - pd.DataFrame
-8. prcoess_h5( reef (Coral Reef object), is2_file (IS2_file object) ) - clusters reef photons from noise from ICESAT2 file. This process is only done for the strong lasers. </br>
+
+5. depth_profile_adaptive( df (pd.DataFrame), out_path (str), is2 (IS2_file object),laser(str) ) - rolling window (dx = 0.0005) - Gets median of all photons in window. If no photons in window the window size increases by dx. </br>
+Return - pd.DataFrame </br>
+
+6. remove_depth_noise( depths ([depth_predictions]) ) - retains depth predictions at index i, if i-1 and i+1 are not nan. Only required if depth_profile_adaptive is used instead of DBSCAN. </br>
+Return [depth_predictions] </br>
+
+7. combine_is2_reef( is2 (IS2_file object),depths (pd.DataFrame) ) - combines depth_predictions from func6 with photon data. Only required if depth_profile_adaptive is used instead of DBSCAN.  </br>
+Returns - pd.DataFrame </br>
+
+8. prcoess_h5( reef (Coral Reef object), is2_file (IS2_file object) ) - clusters reef photons from noise for ICESAT2 file. This process is only done for the strong lasers. </br>
+
 9. get_depths( reef (Coral Reef object) ) - controller function running depth profile for all .h5 files downloaded. </br>
