@@ -54,3 +54,8 @@ To run on a single Sentinel2 image: </br>
 </br>
 To plot import src.Reef_plots as reef_plots </br>
 reef_plots.plot_reefs(preds,data,safe_file,reg)
+
+</br>
+</br>
+Sample Output </br>
+![image](./../reefs/Glovers_Reef-median.png)
