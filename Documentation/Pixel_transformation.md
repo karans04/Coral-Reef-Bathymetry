@@ -57,5 +57,6 @@ reef_plots.plot_reefs(preds,data,safe_file,reg)
 
 </br>
 </br>
-Sample Output </br>
+Sample Output </br></br>
+
 ![image](./../reefs/Glovers_Reef-median.png)
