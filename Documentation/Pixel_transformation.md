@@ -8,7 +8,7 @@ In working directory, there should be a folder called data containing a subfolde
 Run depth_profile.py for the reef. Output will be saved in data/reef_name/Output/Data_Cleaning/Processed_output
 </blockquote> </br></br>
 
-![image](./assets/pixel_transformation.png)
+![image](./assets/Pixel_transformation.png)
 
 Functions </br>
 1. prep_df( sf (Sentinel2_image object) , fp (str) , crs (dict) ) - helper function to load in ICESAT2 training data file and convert it to the crs of the Sentinel method.</br>
