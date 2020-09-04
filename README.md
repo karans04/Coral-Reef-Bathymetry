@@ -4,6 +4,8 @@
 
 ![image](./reefs/Moce-median.png)
 
+![image](./reefs/Yap-median.png)
+
 ![image](./reefs/Great_Blue_Hole-median.png)
 
 ![image](./reefs/Banco_Chinchorro-median.png)
