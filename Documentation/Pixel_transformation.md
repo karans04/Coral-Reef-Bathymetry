@@ -32,7 +32,7 @@ Return [band2, band3, band4, band8]
 Return pd.DataFrame - same as input df, but with added columns for each band
 </br>
 
-6. remove_log_outliers( data (pd.DataFrame) ) - iterates through training depths 0.5m at a time and removes all outliers. </br>
+6. remove_log_outliers( data (pd.DataFrame) ) - iterates through training depths 0.5m at a time and removes all log difference outliers. </br>
 Returns pd.DataFrame - excluding outliers
 </br>
 
