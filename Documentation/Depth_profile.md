@@ -37,3 +37,14 @@ Returns - pd.DataFrame </br>
 8. prcoess_h5( reef (Coral Reef object), is2_file (IS2_file object) ) - clusters reef photons from noise for ICESAT2 file. This process is only done for the strong lasers. </br>
 
 9. get_depths( reef (Coral Reef object) ) - controller function running depth profile for all .h5 files downloaded. </br>
+
+</br>
+Sample Output </br>
+
+![image](./../reefs/Moce_IS2_sample1.png)
+
+![image](./../reefs/Moce_IS2_sample2.png)
+
+![image](./../reefs/Ono_i_Lau_IS2_sample1.png)
+
+![image](./../reefs/Ono_i_Lau_IS2_sample2.png)
