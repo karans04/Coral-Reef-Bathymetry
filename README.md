@@ -11,6 +11,8 @@ Applying DBSCAN on photon clouds </br>
 
 Using log difference of blue and green bands to predict the depth of the rest of the reef </br>
 
+![image](./reefs/corr_plot.png)
+
 ![image](./reefs/Glovers_Reef-median.png)
 
 ![image](./reefs/Moce-median.png)
